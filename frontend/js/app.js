@@ -1,4 +1,84 @@
-// app.js - 24 Saatlik Format (AM/PM KALDIRILDI)
+// --- AUTH (GİRİŞ/KAYIT) FONKSİYONLARI ---
+function showAuthScreen() {
+  document.getElementById('authSection').classList.remove('hidden');
+  document.querySelector('main').classList.add('hidden');
+  document.getElementById('userInfo').classList.add('hidden');
+}
+
+async function showApp(username) {
+  document.getElementById('authSection').classList.add('hidden');
+  document.querySelector('main').classList.remove('hidden');
+  document.getElementById('userInfo').classList.remove('hidden');
+  document.getElementById('usernameDisplay').textContent = `👤 ${username}`;
+
+  await loadCategories();
+  await loadMedicines();
+  setupEventListeners();
+  startReminderChecker();
+
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+function setupAuthListeners() {
+  let isLoginMode = true;
+
+  document.getElementById('loginBtn').addEventListener('click', async () => {
+    const username = document.getElementById('authUsername').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const errBox = document.getElementById('authError');
+
+    if (!username || !password) {
+      errBox.textContent = 'Kullanıcı adı ve şifre gerekli';
+      errBox.classList.remove('hidden');
+      return;
+    }
+
+    if (isLoginMode) {
+      const result = await apiLogin(username, password);
+      if (result.ok) {
+        errBox.classList.add('hidden');
+        showApp(result.data.username);
+      } else {
+        errBox.textContent = result.data.error || 'Giriş başarısız';
+        errBox.classList.remove('hidden');
+      }
+    } else {
+      const result = await apiRegister(username, password);
+      if (result.ok) {
+        errBox.classList.add('hidden');
+        // Kayıt sonrası otomatik giriş yap
+        const loginResult = await apiLogin(username, password);
+        if (loginResult.ok) showApp(loginResult.data.username);
+      } else {
+        errBox.textContent = result.data.error || 'Kayıt başarısız';
+        errBox.classList.remove('hidden');
+      }
+    }
+  });
+
+ document.getElementById('switchAuthBtn').addEventListener('click', () => {
+    isLoginMode = !isLoginMode;
+    document.getElementById('authTitle').textContent = isLoginMode ? 'Giriş Yap' : 'Kayıt Ol';
+    document.getElementById('loginBtn').textContent = isLoginMode ? 'Giriş Yap' : 'Kayıt Ol';
+    
+    // İŞTE EKLENEN YENİ SATIR BURASI: Alttaki küçük butonun yazısını değiştirir
+    document.getElementById('switchAuthBtn').textContent = isLoginMode ? 'Kayıt Ol' : 'Zaten hesabım var, Giriş Yap';
+    
+    document.getElementById('authError').classList.add('hidden');
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await apiLogout();
+    showAuthScreen();
+  });
+}
+
+function startReminderChecker() {
+  setInterval(checkReminders, 15000);
+}
+// ----------------------------------------------------
 
 const searchInput            = document.getElementById('searchInput');
 const showFormBtn            = document.getElementById('showFormBtn');
@@ -17,14 +97,16 @@ const reminderTimesContainer = document.getElementById('reminderTimesContainer')
 
 const FREQUENCY_COUNT = { 'Günde 1 kez': 1, 'Günde 2 kez': 2, 'Günde 3 kez': 3 };
 
+// --- DOMContentLoaded BLOĞU ---
 document.addEventListener('DOMContentLoaded', async () => {
-  await loadCategories();
-  await loadMedicines();
-  setupEventListeners();
-  setInterval(checkReminders, 15000);
-  if ('Notification' in window && Notification.permission !== 'granted') {
-    Notification.requestPermission();
+  // Önce oturum açık mı kontrol et
+  const user = await getMe();
+  if (user) {
+    showApp(user.username);
+  } else {
+    showAuthScreen();
   }
+  setupAuthListeners();
 });
 
 function setupEventListeners() {

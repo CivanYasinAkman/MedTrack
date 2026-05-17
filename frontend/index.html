@@ -11,11 +11,36 @@
   <header>
     <h1>💊 MedTrack</h1>
     <p class="subtitle">Medicine Reminder & Pill Tracker</p>
+    <div id="userInfo" class="hidden">
+    <span id="usernameDisplay"></span>
+    <button id="logoutBtn">Çıkış Yap</button>
+  </div>
   </header>
 
   <div id="reminderAlert" class="reminder-alert hidden"></div>
 
-  <main>
+<!-- Login / Register ekranı -->
+<div id="authSection">
+  <div class="auth-box">
+    <h2 id="authTitle">Giriş Yap</h2>
+
+    <label>Kullanıcı Adı
+      <input type="text" id="authUsername" placeholder="Kullanıcı adı" />
+    </label>
+    <label>Şifre
+      <input type="password" id="authPassword" placeholder="Şifre" />
+    </label>
+
+    <div id="authError" class="error-box hidden"></div>
+
+    <div class="form-buttons">
+      <button id="loginBtn">Giriş Yap</button>
+      <button id="switchAuthBtn">Kayıt Ol</button>
+    </div>
+  </div>
+</div>
+
+  <main class="hidden">
     <div class="toolbar">
       <input type="text" id="searchInput" placeholder="Search medicines..." />
       <button id="showFormBtn" class="btn-primary">+ Add Medicine</button>

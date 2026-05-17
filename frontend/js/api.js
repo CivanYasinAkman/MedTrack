@@ -1,5 +1,3 @@
-// api.js - handles all communication with the backend
-// keeping this separate makes it easier to change the base URL later
 
 const BASE_URL = '/api';
 
@@ -49,5 +47,32 @@ async function fetchDoseLogs(id) {
 
 async function fetchCategories() {
   const res = await fetch(`${BASE_URL}/categories`);
+  return res.json();
+}
+async function apiLogin(username, password) {
+  const res = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+  return { ok: res.ok, data: await res.json() };
+}
+
+async function apiRegister(username, password) {
+  const res = await fetch('/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+  return { ok: res.ok, data: await res.json() };
+}
+
+async function apiLogout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+}
+
+async function getMe() {
+  const res = await fetch('/api/auth/me');
+  if (!res.ok) return null;
   return res.json();
 }

@@ -4,13 +4,24 @@
 CREATE DATABASE IF NOT EXISTS medtrack;
 USE medtrack;
 
+-- 1. USERS TABLE (YENİ EKLENDİ)
+CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(100) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. CATEGORIES TABLE
 CREATE TABLE IF NOT EXISTS categories (
   id INT AUTO_INCREMENT PRIMARY KEY,
   categoryName VARCHAR(100) NOT NULL
 );
 
+-- 3. MEDICINES TABLE (userId EKLENDİ)
 CREATE TABLE IF NOT EXISTS medicines (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  userId INT NOT NULL, -- İlacın hangi kullanıcıya ait olduğunu belirten kolon
   medicineName VARCHAR(150) NOT NULL,
   dosage VARCHAR(100) NOT NULL,
   stockAmount INT NOT NULL DEFAULT 0,
@@ -20,9 +31,11 @@ CREATE TABLE IF NOT EXISTS medicines (
   frequency ENUM('Günde 1 kez','Günde 2 kez','Günde 3 kez'),
   isActive TINYINT(1) DEFAULT 1,
   createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE, -- Kullanıcı silinirse ilaçları da silinir
   FOREIGN KEY (categoryId) REFERENCES categories(id) ON DELETE SET NULL
 );
 
+-- 4. DOSE LOGS TABLE
 CREATE TABLE IF NOT EXISTS dose_logs (
   id INT AUTO_INCREMENT PRIMARY KEY,
   medicineId INT NOT NULL,

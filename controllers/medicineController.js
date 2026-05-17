@@ -7,11 +7,14 @@ async function getAllMedicines(req, res) {
   try {
     const { search } = req.query;
     let medicines;
+    
+    // getTracks/getAllMedicines fonksiyonlarında arama yaparken req.session.userId gönderiliyor
     if (search) {
-      medicines = await medicineModel.searchMedicines(search);
+      medicines = await medicineModel.searchMedicines(search, req.session.userId);
     } else {
-      medicines = await medicineModel.getAllMedicines();
+      medicines = await medicineModel.getAllMedicines(req.session.userId);
     }
+    
     const enriched = medicines.map(enrichMedicineData);
     res.json(enriched);
   } catch (err) {
@@ -26,6 +29,12 @@ async function getMedicineById(req, res) {
     if (!medicine) {
       return res.status(404).json({ error: 'Medicine not found' });
     }
+    
+    // Sahiplik Kontrolü: İlaç giriş yapan kullanıcıya mı ait?
+    if (medicine.userId !== req.session.userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
     res.json(enrichMedicineData(medicine));
   } catch (err) {
     console.error(err);
@@ -40,8 +49,10 @@ async function createMedicine(req, res) {
       return res.status(400).json({ errors });
     }
 
-    // KRİTİK DÜZELTME: Veritabanı dizi kabul etmediği için JSON string'e çeviriyoruz
-    const medicineData = { ...req.body };
+    // req.body'e giriş yapan kullanıcının userId'sini ekliyoruz
+    const medicineData = { ...req.body, userId: req.session.userId };
+    
+    // Veritabanı dizi kabul etmediği için JSON string'e çeviriyoruz
     if (Array.isArray(medicineData.reminderTimes)) {
       medicineData.reminderTimes = JSON.stringify(medicineData.reminderTimes);
     }
@@ -61,12 +72,16 @@ async function updateMedicine(req, res) {
       return res.status(404).json({ error: 'Medicine not found' });
     }
 
+    // Sahiplik Kontrolü
+    if (existing.userId !== req.session.userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     const errors = validateMedicineInput(req.body);
     if (errors.length > 0) {
       return res.status(400).json({ errors });
     }
 
-    // KRİTİK DÜZELTME: Update işleminde 500 hatasını çözen kısım
     const medicineData = { ...req.body };
     if (Array.isArray(medicineData.reminderTimes)) {
       medicineData.reminderTimes = JSON.stringify(medicineData.reminderTimes);
@@ -82,10 +97,17 @@ async function updateMedicine(req, res) {
 
 async function deleteMedicine(req, res) {
   try {
-    const deleted = await medicineModel.deleteMedicine(req.params.id);
-    if (!deleted) {
+    const existing = await medicineModel.getMedicineById(req.params.id);
+    if (!existing) {
       return res.status(404).json({ error: 'Medicine not found' });
     }
+
+    // Sahiplik Kontrolü
+    if (existing.userId !== req.session.userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    await medicineModel.deleteMedicine(req.params.id);
     res.json({ message: 'Medicine deleted successfully' });
   } catch (err) {
     console.error(err);
@@ -99,9 +121,16 @@ async function logDose(req, res) {
     if (!medicine) {
       return res.status(404).json({ error: 'Medicine not found' });
     }
+    
+    // Sahiplik Kontrolü
+    if (medicine.userId !== req.session.userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     if (medicine.stockAmount <= 0) {
       return res.status(400).json({ error: 'No stock remaining' });
     }
+    
     await doseLogModel.logDose(req.params.id, medicine.dosage);
     res.json({ message: 'Dose logged successfully' });
   } catch (err) {
@@ -112,6 +141,16 @@ async function logDose(req, res) {
 
 async function getDoseLogs(req, res) {
   try {
+    const medicine = await medicineModel.getMedicineById(req.params.id);
+    if (!medicine) {
+      return res.status(404).json({ error: 'Medicine not found' });
+    }
+    
+    // Sahiplik Kontrolü
+    if (medicine.userId !== req.session.userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     const logs = await doseLogModel.getLogsForMedicine(req.params.id);
     res.json(logs);
   } catch (err) {

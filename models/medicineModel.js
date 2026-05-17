@@ -23,13 +23,14 @@ function parseMedicine(row) {
 }
 
 // Tüm ilaçları getir
-async function getAllMedicines() {
+async function getAllMedicines(userId) {
   const [rows] = await db.query(`
     SELECT m.*, c.categoryName
     FROM medicines m
     LEFT JOIN categories c ON m.categoryId = c.id
+    WHERE m.userId = ?
     ORDER BY m.id DESC
-  `);
+  `, [userId]);
   return rows.map(parseMedicine);
 }
 
@@ -45,14 +46,12 @@ async function getMedicineById(id) {
 
 // İlaç Oluştur
 async function createMedicine(data) {
-  const { medicineName, dosage, stockAmount, expirationDate, categoryId, reminderTimes, frequency } = data;
-  
+  const { medicineName, dosage, stockAmount, expirationDate, categoryId, reminderTimes, frequency, userId } = data;
   const timesJson = Array.isArray(reminderTimes) ? JSON.stringify(reminderTimes) : JSON.stringify([]);
 
-  const [result] = await db.query(
-    `INSERT INTO medicines (medicineName, dosage, stockAmount, expirationDate, categoryId, reminderTimes, frequency)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [medicineName, dosage, stockAmount, expirationDate, categoryId || null, timesJson, frequency || null]
+ const [result] = await db.query(
+    `INSERT INTO medicines (medicineName, dosage, stockAmount, expirationDate, categoryId, reminderTimes, frequency, userId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [medicineName, dosage, stockAmount, expirationDate, categoryId || null, timesJson, frequency || null, userId]
   );
   return getMedicineById(result.insertId);
 }
@@ -84,13 +83,14 @@ async function deleteMedicine(id) {
   return result.affectedRows > 0;
 }
 
-async function searchMedicines(query) {
+async function searchMedicines(query, userId) {
   const [rows] = await db.query(`
     SELECT m.*, c.categoryName
     FROM medicines m
     LEFT JOIN categories c ON m.categoryId = c.id
-    WHERE m.medicineName LIKE ?
-  `, [`%${query}%`]);
+    WHERE m.medicineName LIKE ? AND m.userId = ?
+    ORDER BY m.id DESC
+  `, [`%${query}%`, userId]);
   return rows.map(parseMedicine);
 }
 
