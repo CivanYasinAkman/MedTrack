@@ -34,9 +34,20 @@ const swaggerOptions = {
       version: '1.0.0',
       description: 'API for Medicine Reminder & Pill Tracker',
     },
-    servers: [{ url: `http://localhost:${PORT}` }],
+    servers: [{ url: 'http://localhost:3000' }],
+    paths: {
+      '/api/categories': {
+        get: {
+          summary: 'Tüm ilaç kategorilerini listeler',
+          responses: {
+            '200': { description: 'Kategoriler başarıyla getirildi.' },
+            '401': { description: 'Yetkisiz erişim.' }
+          }
+        }
+      }
+    }
   },
-  apis: ['./routes/*.js'],
+  apis: [], // Dosyaları taramasını kapattık, direkt buradan okuyacak
 };
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
